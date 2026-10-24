@@ -243,7 +243,6 @@ ol{list-style:none;margin:0;padding:0}
       <div class="stats">
         <div class="stat"><b id="st-total">0</b><span>utworów</span></div>
         <div class="stat"><b id="st-artists">0</b><span>wykonawców</span></div>
-        <div class="stat"><b id="st-new">0</b><span>bez notowania</span></div>
       </div>
       <div class="meter" role="group" aria-label="Postęp odsłuchu">
         <div class="meter-top"><span>Odsłuchane</span><b id="heardN">0 / 0</b></div>
@@ -441,7 +440,6 @@ window.addEventListener('resize',setBarH);
 
 $('st-total').textContent=tracks.length;
 $('st-artists').textContent=artistIdx.size;
-$('st-new').textContent=tracks.filter(t=>t.pos==null).length;
 tracks.forEach(t=>byKey.set(keyOf(t),t));
 picks=picks.filter(k=>byKey.has(k));
 const savePicks=()=>{try{localStorage.setItem(LSP,JSON.stringify(picks));}catch(e){}};
