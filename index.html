@@ -350,7 +350,7 @@ const PLATFORMS=[
   {cls:'sp',name:'Spotify',short:'Spotify',play:'open.spotify.com/track',search:q=>'https://open.spotify.com/search/'+q},
   {cls:'am',name:'Apple',short:'Apple',play:'music.apple.com',search:q=>'https://music.apple.com/pl/search?term='+q},
 ];
-const pairs=t=>PLATFORMS.map(p=>`<span class="pair ${p.cls}"><span class="pl"><span class="ln">${p.name}</span><span class="sn">${p.short}</span></span><a class="play" href="${luckyOn(p.play,t)}" target="_blank" rel="noopener">Odtwórz</a><a class="srch" href="${p.search(qs(t))}" target="_blank" rel="noopener" aria-label="Szukaj w ${p.name}"><span class="sl">Szukaj</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg></a></span>`).join('');
+const pairs=t=>PLATFORMS.map(p=>`<span class="pair ${p.cls}"><span class="pl"><span class="ln">${p.name}</span><span class="sn">${p.short}</span></span><a class="play" href="${luckyOn(p.play,t)}" target="_blank" rel="noopener noreferrer">Odtwórz</a><a class="srch" href="${p.search(qs(t))}" target="_blank" rel="noopener" aria-label="Szukaj w ${p.name}"><span class="sl">Szukaj</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg></a></span>`).join('');
 const plural=(n,a,b,c)=>n===1?a:(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?b:c;
 
 function rowHTML(t,flat){
