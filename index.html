@@ -98,7 +98,6 @@ a{color:inherit}
 .az a{flex:none;min-width:24px;text-align:center;font-family:var(--f-cond);font-weight:800;font-size:.92rem;padding:3px 3px 2px;text-decoration:none;color:var(--bone);border-radius:3px}
 .az a:hover{background:var(--brass);color:var(--brass-ink)}
 .az a[aria-disabled="true"]{color:#4a3a35;pointer-events:none}
-.az[hidden]{display:none}
 .count{margin-left:auto;flex:none;font-family:var(--f-cond);font-weight:600;letter-spacing:.08em;font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums;text-transform:uppercase}
 .count b{color:var(--bone)}
 
@@ -113,12 +112,9 @@ ol{list-style:none;margin:0;padding:0}
 .row:hover{background:linear-gradient(90deg,rgba(212,166,69,.06),transparent 70%)}
 .pos{text-align:right;font-family:var(--f-cond);font-weight:800;font-variant-numeric:tabular-nums;color:var(--muted);font-size:1.15rem;line-height:1}
 .pos i{font-style:normal;color:var(--dim);font-size:.7em;margin-right:1px}
-.flat .pos{font-size:2rem;font-weight:900;color:var(--bone)}
-.flat .row:nth-child(-n+10) .pos{color:var(--brass)}
 .stamp{display:inline-block;font-family:var(--f-cond);font-weight:900;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--blood);border:2px solid var(--blood);padding:2px 5px 1px;transform:rotate(-6deg)}
 .t{min-width:0}
 .song{font-weight:600;font-size:1.02rem;overflow-wrap:anywhere}
-.by{color:var(--muted);font-size:.86rem;font-family:var(--f-cond);font-weight:600;text-transform:uppercase;letter-spacing:.08em;overflow-wrap:anywhere}
 .row.heard .song{color:var(--muted);font-weight:500}
 .acts{display:flex;gap:8px;align-items:center}
 .star{display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;background:transparent;cursor:pointer;color:var(--dim);border-radius:3px}
@@ -216,7 +212,6 @@ ol{list-style:none;margin:0;padding:0}
 }
 @media (max-width:520px){
   .row{grid-template-columns:3.4rem minmax(0,1fr) auto;gap:6px 10px}
-  .flat .pos{font-size:1.5rem}
   .stamp{font-size:.6rem;padding:2px 4px 1px;letter-spacing:.12em}
   .links{grid-column:1/-1}
   .seg{width:100%}
@@ -265,9 +260,8 @@ ol{list-style:none;margin:0;padding:0}
         <button id="f-unheard" data-f="unheard" aria-pressed="false">Do odsłuchu</button>
         <button id="f-heard" data-f="heard" aria-pressed="false">Odsłuchane</button>
       </div>
-      <div class="seg" role="group" aria-label="Sortowanie">
-        <button id="s-artist" data-s="artist" aria-pressed="true">A–Z</button>
-        <button id="s-pos" data-s="pos" aria-pressed="false">Notowanie</button>
+      <div class="seg">
+        <button id="dir" type="button" aria-label="Sortuj od Z do A">A–Z</button>
       </div>
     </div>
     <div class="row2">
@@ -338,7 +332,7 @@ let picks=[];
 try{picks=JSON.parse(localStorage.getItem(LSP)||'[]');if(!Array.isArray(picks))picks=[];}catch(e){picks=[];}
 const byKey=new Map();
 const isHeard=t=>heard.has(keyOf(t));
-let filter='all',sort='artist';
+let filter='all',desc=false;
 const $=id=>document.getElementById(id);
 const $list=$('list'),$q=$('q');
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -352,12 +346,12 @@ const PLATFORMS=[
 const pairs=t=>PLATFORMS.map(p=>`<span class="pair ${p.cls}"><span class="pl"><span class="ln">${p.name}</span><span class="sn">${p.short}</span></span><a class="play" href="${p.direct?.(t)||luckyOn(p.play,t)}" target="_blank" rel="noopener noreferrer">Odtwórz</a><a class="srch" href="${p.search(qs(t))}" target="_blank" rel="noopener" aria-label="Szukaj w ${p.name}"><span class="sl">Szukaj</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg></a></span>`).join('');
 const plural=(n,a,b,c)=>n===1?a:(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?b:c;
 
-function rowHTML(t,flat){
+function rowHTML(t){
   const h=isHeard(t), p=picks.includes(keyOf(t));
   const pos=t.pos==null?'<span class="stamp">nowe</span>':`<i>#</i>${t.pos}`;
   return `<li class="row${h?' heard':''}${p?' picked':''}" data-id="${t.id}">
     <div class="pos">${pos}</div>
-    <div class="t"><div class="song">${esc(t.song)}</div>${flat?`<div class="by">${esc(t.artist)}</div>`:''}</div>
+    <div class="t"><div class="song">${esc(t.song)}</div></div>
     <div class="acts"><button class="star" type="button" aria-pressed="${p}" title="Mój wybór" aria-label="Mój wybór: ${esc(t.artist)}, ${esc(t.song)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg></button><label class="chk" title="Odsłuchane"><input type="checkbox" ${h?'checked':''} aria-label="Odsłuchane: ${esc(t.artist)}, ${esc(t.song)}"><span></span></label></div>
     <div class="links">${pairs(t)}</div>
   </li>`;
@@ -365,7 +359,7 @@ function rowHTML(t,flat){
 
 const LETTERS=['#',...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
 const $az=$('az');
-$az.innerHTML=LETTERS.map(L=>`<a href="#L-${L==='#'?'num':L}" data-l="${L}">${L}</a>`).join('');
+const azHTML=ls=>ls.map(L=>`<a href="#L-${L==='#'?'num':L}" data-l="${L}">${L}</a>`).join('');
 
 function render(){
   const q=norm($q.value).trim();
@@ -378,22 +372,17 @@ function render(){
     return true;
   });
   const present=new Set();
-  if(sort==='pos'){
-    rows=[...rows].sort((a,b)=>(a.pos??1e9)-(b.pos??1e9));
-    $list.innerHTML=rows.length?`<ol class="flat">${rows.map(t=>rowHTML(t,true)).join('')}</ol>`:'';
-  }else{
-    const groups=new Map();
-    rows.forEach(t=>{if(!groups.has(t.artist))groups.set(t.artist,[]);groups.get(t.artist).push(t);});
-    const order=[...groups.keys()].sort((a,b)=>artistIdx.get(a)-artistIdx.get(b));
-    $list.innerHTML=order.map(a=>{
-      const L=letterOf(a);const first=!present.has(L);present.add(L);
-      const list=groups.get(a);
-      return `<section class="grp"${first?` id="L-${L==='#'?'num':L}"`:''}>
-        <h2>${first?`<span class="L" aria-hidden="true">${L}</span>`:''}<span>${esc(a)}</span><span class="cnt">${list.length}</span></h2>
-        <ol>${list.map(t=>rowHTML(t,false)).join('')}</ol></section>`;
-    }).join('');
-  }
-  $az.hidden=sort!=='artist';
+  const groups=new Map();
+  rows.forEach(t=>{if(!groups.has(t.artist))groups.set(t.artist,[]);groups.get(t.artist).push(t);});
+  const order=[...groups.keys()].sort((a,b)=>desc?artistIdx.get(b)-artistIdx.get(a):artistIdx.get(a)-artistIdx.get(b));
+  $list.innerHTML=order.map(a=>{
+    const L=letterOf(a);const first=!present.has(L);present.add(L);
+    const list=groups.get(a);
+    return `<section class="grp"${first?` id="L-${L==='#'?'num':L}"`:''}>
+      <h2>${first?`<span class="L" aria-hidden="true">${L}</span>`:''}<span>${esc(a)}</span><span class="cnt">${list.length}</span></h2>
+      <ol>${list.map(rowHTML).join('')}</ol></section>`;
+  }).join('');
+  $az.innerHTML=azHTML(desc?[...LETTERS].reverse():LETTERS);
   $az.querySelectorAll('a').forEach(x=>x.setAttribute('aria-disabled',present.has(x.dataset.l)?'false':'true'));
   $('empty').hidden=rows.length>0;
   $('count').innerHTML=`<b>${rows.length}</b> / ${tracks.length}`;
@@ -429,8 +418,8 @@ $list.addEventListener('change',e=>{
 let tmr;$q.addEventListener('input',()=>{clearTimeout(tmr);tmr=setTimeout(render,80);});
 document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{filter=b.dataset.f;
   document.querySelectorAll('[data-f]').forEach(x=>x.setAttribute('aria-pressed',x===b));render();});
-document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{sort=b.dataset.s;
-  document.querySelectorAll('[data-s]').forEach(x=>x.setAttribute('aria-pressed',x===b));render();});
+$('dir').onclick=e=>{desc=!desc;
+  e.currentTarget.textContent=desc?'Z–A':'A–Z';e.currentTarget.setAttribute('aria-label',desc?'Sortuj od A do Z':'Sortuj od Z do A');render();};
 $az.addEventListener('click',e=>{
   const a=e.target.closest('a');if(!a)return;e.preventDefault();
   const el=document.getElementById(a.getAttribute('href').slice(1));if(el)el.scrollIntoView({block:'start'});
