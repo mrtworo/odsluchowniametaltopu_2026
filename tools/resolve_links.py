@@ -3,7 +3,9 @@
 
 Rewrites DATA entries as [artist, song, pos, apple_track_id, ytm_video_id]
 (null where nothing trustworthy was found; the page falls back to DDG then)
-and prints matches worth a manual look.
+and prints matches worth a manual look. Tracks listed in FIXES get the
+corrected names appended, [..., search_song, search_artist?], which the page
+uses for its search links while still showing the official spelling.
 
     pip install ytmusicapi
     python3 tools/resolve_links.py
@@ -35,6 +37,47 @@ ALT = {'live', 'demo', 'acoustic', 'remix', 'cover', 'tribute', 'rehearsal',
 # Not worth linking at all.
 REJECT = {'instrumental', 'karaoke'}
 MIN_SIM = 0.85
+
+# Typos and misnamings in the official list: (artist, song) -> (search artist, search song).
+FIXES = {
+    ('Armored Saint', 'Reign Of Fear'): ('Armored Saint', 'Reign of Fire'),
+    ('Azarath', 'Beyond The Gates Of Burning Ghasts'): ('Azarath', 'Beyond the Gates of Burning Ghast'),
+    ('Blindead', 'So, It Feels Like A Misunderstanding When…'): ('Blindead', 'So, It Feels Like Misunderstanding When'),
+    ('Candlemass', "At The Gallow's End"): ('Candlemass', 'At the Gallows End'),
+    ('Carcass', 'Corporeal Jigsore Quandary'): ('Carcass', 'Corporal Jigsore Quandary'),
+    ('Celtic Frost', 'A Dying God Into The Human Flesh'): ('Celtic Frost', 'A Dying God Coming into Human Flesh'),
+    ('Celtic Frost', 'Procreation Of The Wicked'): ('Celtic Frost', 'Procreation (Of the Wicked)'),
+    ('Darkthrone', 'Nastassja In Eternal Sleep'): ('Darkthrone', 'Natassja in Eternal Sleep'),
+    ('Girlschool & Motorhead', "Please Don't Touch"): ('Girlschool', "Please Don't Touch"),
+    ('Grave', 'Souless'): ('Grave', 'Soulless'),
+    ('Hypocrisy', 'Fractured Millenium'): ('Hypocrisy', 'Fractured Millennium'),
+    ('Judas Priest', 'Turbo'): ('Judas Priest', 'Turbo Lover'),
+    ('KAT', 'Diabelski dom (cz.2)'): ('KAT', 'Diabelski dom cz. II'),
+    ('KAT', 'Purpupowe gody'): ('KAT', 'Purpurowe gody'),
+    ('Kreator', 'When The Sun Turns Red'): ('Kreator', 'When the Sun Burns Red'),
+    ('Marduk', 'Sulhpur Souls'): ('Marduk', 'Sulphur Souls'),
+    ('Megadeth', "Peace Sells But Who's Buying"): ('Megadeth', 'Peace Sells'),
+    ('Mercyful Fate', 'Curse Of The Pharohs'): ('Mercyful Fate', 'Curse of the Pharaohs'),
+    ('Meshuggah', 'New Millenium Cyanide Christ'): ('Meshuggah', 'New Millennium Cyanide Christ'),
+    ('Metal Church', 'Watch The Children Prey'): ('Metal Church', 'Watch the Children Pray'),
+    ('Morowe', 'Tylko piekło, labrirynty i diabły'): ('Morowe', 'Tylko piekło, labirynty i diabły'),
+    ('Motörhead', 'God Was Never On My Side'): ('Motörhead', 'God Was Never on Your Side'),
+    ('Municipal Waste', "Headbanger's Face Rip"): ('Municipal Waste', 'Headbanger Face Rip'),
+    ('Nevermore', 'Heart Collerctor'): ('Nevermore', 'The Heart Collector'),
+    ('Pantera', 'Cemetary Gates'): ('Pantera', 'Cemetery Gates'),
+    ('Sabaton', 'Forty To One (40:1)'): ('Sabaton', '40:1'),
+    ('Shining (Nor)', 'The Madness And The Damage Done'): ('Shining', 'The Madness and the Damage Done'),
+    ('Suicidal Tendencies', "Can't Bring Me Down"): ('Suicidal Tendencies', "You Can't Bring Me Down"),
+    ('Testament', 'True Beliver'): ('Testament', 'True Believer'),
+    ('Truchło Strzygi', 'Busola donikąd'): ('Truchło Strzygi', 'Busola do nikąd'),
+    ('Type O Negative', 'Love Me To Death'): ('Type O Negative', 'Love You to Death'),
+    ('Type O Negative', 'Wolfmoon'): ('Type O Negative', 'Wolf Moon'),
+    ('Vader', 'The Crucifed Ones'): ('Vader', 'The Crucified Ones'),
+    ('Van Halen', "Running' With The Devil"): ('Van Halen', "Runnin' with the Devil"),
+    ('Venom', 'Lay Down Your Souls'): ('Venom', 'Lay Down Your Soul'),
+    ('W.A.S.P.', 'Sleeping In The Fire'): ('W.A.S.P.', 'Sleeping (In the Fire)'),
+    ('Wintersun', 'Beyond The Black Sun'): ('Wintersun', 'Beyond the Dark Sun'),
+}
 NUM_WORDS = {w: str(i) for i, w in enumerate(
     'zero one two three four five six seven eight nine ten eleven twelve'.split())}
 NUM_WORDS.update(twenty='20', thirty='30', forty='40', fifty='50', hundred='100')
@@ -201,7 +244,11 @@ def resolve_ytm(rows, out):
 def main():
     html = open(INDEX, encoding='utf-8').read()
     data = json.loads(DATA_RE.search(html).group(1))
-    rows = [(d[0], d[1]) for d in data]
+    listed = {(d[0], d[1]) for d in data}
+    stale = [k for k in FIXES if k not in listed]
+    if stale:
+        sys.exit(f'FIXES entries not in DATA: {stale}')
+    rows = [FIXES.get((d[0], d[1]), (d[0], d[1])) for d in data]
 
     apple, ytm = {}, {}
     workers = [threading.Thread(target=resolve_apple, args=(rows, apple)),
@@ -220,8 +267,12 @@ def main():
                 _, _, flags, got = found[(a, s)]
                 print(f'  {",".join(flags):<22} {a} - {s}  =>  {got}')
 
-    new = [d[:3] + [apple.get((d[0], d[1]), (0, None))[1], ytm.get((d[0], d[1]), (0, None))[1]]
-           for d in data]
+    new = []
+    for d, (a, s) in zip(data, rows):
+        row = d[:3] + [apple.get((a, s), (0, None))[1], ytm.get((a, s), (0, None))[1]]
+        if (a, s) != (d[0], d[1]):
+            row += [s] + ([a] if a != d[0] else [])
+        new.append(row)
     html = DATA_RE.sub(lambda _: 'const DATA = ' + json.dumps(new, ensure_ascii=False) + ';', html, 1)
     open(INDEX, 'w', encoding='utf-8').write(html)
 
